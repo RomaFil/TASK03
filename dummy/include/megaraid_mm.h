@@ -23,16 +23,14 @@
 #include "mbox_defs.h"
 #include "megaraid_ioctl.h"
 
+#define LSI_COMMON_MOD_VERSION "2.20.2.7"
+#define LSI_COMMON_MOD_EXT_VERSION \
+	"(Release Date: Sun Jul 16 00:01:03 EST 2006)"
 
-#define LSI_COMMON_MOD_VERSION	"2.20.2.7"
-#define LSI_COMMON_MOD_EXT_VERSION	\
-		"(Release Date: Sun Jul 16 00:01:03 EST 2006)"
-
-
-#define LSI_DBGLVL			dbglevel
+#define LSI_DBGLVL dbglevel
 
 // The smallest dma pool
-#define MRAID_MM_INIT_BUFF_SIZE		4096
+#define MRAID_MM_INIT_BUFF_SIZE 4096
 
 /**
  * mimd_t	: Old style ioctl packet structure (deprecated)
@@ -58,7 +56,6 @@
  */
 
 typedef struct mimd {
-
 	uint32_t inlen;
 	uint32_t outlen;
 
@@ -76,21 +73,21 @@ typedef struct mimd {
 			uint8_t __user *buffer;
 #endif
 			uint32_t length;
-		} __attribute__ ((packed)) fcs;
-	} __attribute__ ((packed)) ui;
+		} __attribute__((packed)) fcs;
+	} __attribute__((packed)) ui;
 
-	uint8_t mbox[18];		/* 16 bytes + 2 status bytes */
+	uint8_t mbox[18]; /* 16 bytes + 2 status bytes */
 	mraid_passthru_t pthru;
 
 #if BITS_PER_LONG == 32
-	char __user *data;		/* buffer <= 4096 for 0x80 commands */
+	char __user *data; /* buffer <= 4096 for 0x80 commands */
 	char pad[4];
 #endif
 #if BITS_PER_LONG == 64
 	char __user *data;
 #endif
 
-} __attribute__ ((packed))mimd_t;
+} __attribute__((packed)) mimd_t;
 
 #endif // MEGARAID_MM_H
 

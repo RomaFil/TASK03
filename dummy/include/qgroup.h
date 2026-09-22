@@ -121,10 +121,10 @@ struct btrfs_qgroup_swapped_blocks;
  * To minimize the chance of collision with new persisted status flags, these
  * count backwards from the MSB.
  */
-#define BTRFS_QGROUP_RUNTIME_FLAG_CANCEL_RESCAN		(1ULL << 63)
-#define BTRFS_QGROUP_RUNTIME_FLAG_NO_ACCOUNTING		(1ULL << 62)
+#define BTRFS_QGROUP_RUNTIME_FLAG_CANCEL_RESCAN (1ULL << 63)
+#define BTRFS_QGROUP_RUNTIME_FLAG_NO_ACCOUNTING (1ULL << 62)
 
-#define BTRFS_QGROUP_DROP_SUBTREE_THRES_DEFAULT		(3)
+#define BTRFS_QGROUP_DROP_SUBTREE_THRES_DEFAULT (3)
 
 /*
  * Record a dirty extent, and info qgroup to update quota on it
@@ -146,8 +146,8 @@ struct btrfs_qgroup_extent_record {
 	 * And will be used to free reserved qgroup space at
 	 * transaction commit time.
 	 */
-	u32 data_rsv;		/* reserved data space needs to be freed */
-	u64 data_rsv_refroot;	/* which root the reserved data belongs to */
+	u32 data_rsv; /* reserved data space needs to be freed */
+	u64 data_rsv_refroot; /* which root the reserved data belongs to */
 	struct ulist *old_roots;
 };
 
@@ -220,15 +220,15 @@ struct btrfs_qgroup {
 	/*
 	 * state
 	 */
-	u64 rfer;	/* referenced */
-	u64 rfer_cmpr;	/* referenced compressed */
-	u64 excl;	/* exclusive */
-	u64 excl_cmpr;	/* exclusive compressed */
+	u64 rfer; /* referenced */
+	u64 rfer_cmpr; /* referenced compressed */
+	u64 excl; /* exclusive */
+	u64 excl_cmpr; /* exclusive compressed */
 
 	/*
 	 * limits
 	 */
-	u64 lim_flags;	/* which limits are set */
+	u64 lim_flags; /* which limits are set */
 	u64 max_rfer;
 	u64 max_excl;
 	u64 rsv_rfer;
@@ -242,9 +242,9 @@ struct btrfs_qgroup {
 	/*
 	 * lists
 	 */
-	struct list_head groups;  /* groups this group is member of */
+	struct list_head groups; /* groups this group is member of */
 	struct list_head members; /* groups that are members of this group */
-	struct list_head dirty;   /* dirty groups */
+	struct list_head dirty; /* dirty groups */
 
 	/*
 	 * For qgroup iteration usage.
@@ -272,7 +272,7 @@ struct btrfs_qgroup {
 	 *	qgroup_iterator_nested_clean(all_qgroups);
 	 */
 	struct list_head nested_iterator;
-	struct rb_node node;	  /* tree of qgroups */
+	struct rb_node node; /* tree of qgroups */
 
 	/*
 	 * temp variables for accounting operations
@@ -338,23 +338,23 @@ int btrfs_qgroup_rescan(struct btrfs_fs_info *fs_info);
 void btrfs_qgroup_rescan_resume(struct btrfs_fs_info *fs_info);
 int btrfs_qgroup_wait_for_completion(struct btrfs_fs_info *fs_info,
 				     bool interruptible);
-int btrfs_add_qgroup_relation(struct btrfs_trans_handle *trans, u64 src, u64 dst,
-			      struct btrfs_qgroup_list *prealloc);
+int btrfs_add_qgroup_relation(struct btrfs_trans_handle *trans, u64 src,
+			      u64 dst, struct btrfs_qgroup_list *prealloc);
 int btrfs_del_qgroup_relation(struct btrfs_trans_handle *trans, u64 src,
 			      u64 dst);
 int btrfs_create_qgroup(struct btrfs_trans_handle *trans, u64 qgroupid);
 int btrfs_remove_qgroup(struct btrfs_trans_handle *trans, u64 qgroupid);
-int btrfs_qgroup_cleanup_dropped_subvolume(struct btrfs_fs_info *fs_info, u64 subvolid);
+int btrfs_qgroup_cleanup_dropped_subvolume(struct btrfs_fs_info *fs_info,
+					   u64 subvolid);
 int btrfs_limit_qgroup(struct btrfs_trans_handle *trans, u64 qgroupid,
 		       struct btrfs_qgroup_limit *limit);
 int btrfs_read_qgroup_config(struct btrfs_fs_info *fs_info);
 void btrfs_free_qgroup_config(struct btrfs_fs_info *fs_info);
 
-int btrfs_qgroup_trace_extent_nolock(
-		struct btrfs_fs_info *fs_info,
-		struct btrfs_delayed_ref_root *delayed_refs,
-		struct btrfs_qgroup_extent_record *record,
-		u64 bytenr);
+int btrfs_qgroup_trace_extent_nolock(struct btrfs_fs_info *fs_info,
+				     struct btrfs_delayed_ref_root *delayed_refs,
+				     struct btrfs_qgroup_extent_record *record,
+				     u64 bytenr);
 int btrfs_qgroup_trace_extent_post(struct btrfs_trans_handle *trans,
 				   struct btrfs_qgroup_extent_record *qrecord,
 				   u64 bytenr);
@@ -363,8 +363,8 @@ int btrfs_qgroup_trace_extent(struct btrfs_trans_handle *trans, u64 bytenr,
 int btrfs_qgroup_trace_leaf_items(struct btrfs_trans_handle *trans,
 				  struct extent_buffer *eb);
 int btrfs_qgroup_trace_subtree(struct btrfs_trans_handle *trans,
-			       struct extent_buffer *root_eb,
-			       u64 root_gen, int root_level);
+			       struct extent_buffer *root_eb, u64 root_gen,
+			       int root_level);
 int btrfs_qgroup_account_extent(struct btrfs_trans_handle *trans, u64 bytenr,
 				u64 num_bytes, struct ulist *old_roots,
 				struct ulist *new_roots);
@@ -376,19 +376,20 @@ int btrfs_qgroup_check_inherit(struct btrfs_fs_info *fs_info,
 int btrfs_qgroup_inherit(struct btrfs_trans_handle *trans, u64 srcid,
 			 u64 objectid, u64 inode_rootid,
 			 struct btrfs_qgroup_inherit *inherit);
-void btrfs_qgroup_free_refroot(struct btrfs_fs_info *fs_info,
-			       u64 ref_root, u64 num_bytes,
-			       enum btrfs_qgroup_rsv_type type);
+void btrfs_qgroup_free_refroot(struct btrfs_fs_info *fs_info, u64 ref_root,
+			       u64 num_bytes, enum btrfs_qgroup_rsv_type type);
 
 #ifdef CONFIG_BTRFS_FS_RUN_SANITY_TESTS
-int btrfs_verify_qgroup_counts(const struct btrfs_fs_info *fs_info, u64 qgroupid,
-			       u64 rfer, u64 excl);
+int btrfs_verify_qgroup_counts(const struct btrfs_fs_info *fs_info,
+			       u64 qgroupid, u64 rfer, u64 excl);
 #endif
 
 /* New io_tree based accurate qgroup reserve API */
 int btrfs_qgroup_reserve_data(struct btrfs_inode *inode,
-			struct extent_changeset **reserved, u64 start, u64 len);
-int btrfs_qgroup_release_data(struct btrfs_inode *inode, u64 start, u64 len, u64 *released);
+			      struct extent_changeset **reserved, u64 start,
+			      u64 len);
+int btrfs_qgroup_release_data(struct btrfs_inode *inode, u64 start, u64 len,
+			      u64 *released);
 int btrfs_qgroup_free_data(struct btrfs_inode *inode,
 			   struct extent_changeset *reserved, u64 start,
 			   u64 len, u64 *freed);
@@ -407,12 +408,14 @@ void btrfs_qgroup_init_swapped_blocks(
 
 void btrfs_qgroup_clean_swapped_blocks(struct btrfs_root *root);
 int btrfs_qgroup_add_swapped_blocks(struct btrfs_root *subvol_root,
-		struct btrfs_block_group *bg,
-		struct extent_buffer *subvol_parent, int subvol_slot,
-		struct extent_buffer *reloc_parent, int reloc_slot,
-		u64 last_snapshot);
+				    struct btrfs_block_group *bg,
+				    struct extent_buffer *subvol_parent,
+				    int subvol_slot,
+				    struct extent_buffer *reloc_parent,
+				    int reloc_slot, u64 last_snapshot);
 int btrfs_qgroup_trace_subtree_after_cow(struct btrfs_trans_handle *trans,
-		struct btrfs_root *root, struct extent_buffer *eb);
+					 struct btrfs_root *root,
+					 struct extent_buffer *eb);
 void btrfs_qgroup_destroy_extent_records(struct btrfs_transaction *trans);
 bool btrfs_check_quota_leak(const struct btrfs_fs_info *fs_info);
 int btrfs_record_squota_delta(struct btrfs_fs_info *fs_info,

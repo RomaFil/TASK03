@@ -15,17 +15,14 @@
 #include <linux/mutex.h>
 #include "megaraid_mm.h"
 
-
 // Entry points for char node driver
 static DEFINE_MUTEX(mraid_mm_mutex);
 static int mraid_mm_open(struct inode *, struct file *);
 static long mraid_mm_unlocked_ioctl(struct file *, uint, unsigned long);
 
-
 // routines to convert to and from the old the format
 static int mimd_to_kioc(mimd_t __user *, mraid_mmadp_t *, uioc_t *);
 static int kioc_to_mimd(uioc_t *, mimd_t __user *);
-
 
 // Helper functions
 static int handle_drvrcmd(void __user *, uint8_t, int *);
@@ -54,7 +51,7 @@ EXPORT_SYMBOL(mraid_mm_register_adp);
 EXPORT_SYMBOL(mraid_mm_unregister_adp);
 EXPORT_SYMBOL(mraid_mm_adapter_app_handle);
 
-static uint32_t drvr_ver	= 0x02200207;
+static uint32_t drvr_ver = 0x02200207;
 
 static int adapters_count_g;
 static struct list_head adapters_list_g;
@@ -62,17 +59,17 @@ static struct list_head adapters_list_g;
 static wait_queue_head_t wait_q;
 
 static const struct file_operations lsi_fops = {
-	.open	= mraid_mm_open,
+	.open = mraid_mm_open,
 	.unlocked_ioctl = mraid_mm_unlocked_ioctl,
 	.compat_ioctl = compat_ptr_ioctl,
-	.owner	= THIS_MODULE,
+	.owner = THIS_MODULE,
 	.llseek = noop_llseek,
 };
 
 static struct miscdevice megaraid_mm_dev = {
-	.minor	= MISC_DYNAMIC_MINOR,
-	.name   = "megadev0",
-	.fops   = &lsi_fops,
+	.minor = MISC_DYNAMIC_MINOR,
+	.name = "megadev0",
+	.fops = &lsi_fops,
 };
 
 /**
@@ -82,13 +79,13 @@ static struct miscdevice megaraid_mm_dev = {
  *
  * Allow ioctl operations by apps only if they have superuser privilege.
  */
-static int
-mraid_mm_open(struct inode *inode, struct file *filep)
+static int mraid_mm_open(struct inode *inode, struct file *filep)
 {
 	/*
 	 * Only allow superuser to access private ioctl interface
 	 */
-	if (!capable(CAP_SYS_ADMIN)) return (-EACCES);
+	if (!capable(CAP_SYS_ADMIN))
+		return (-EACCES);
 
 	return 0;
 }
@@ -99,15 +96,15 @@ mraid_mm_open(struct inode *inode, struct file *filep)
  * @cmd		: ioctl command
  * @arg		: user ioctl packet
  */
-static int
-mraid_mm_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
+static int mraid_mm_ioctl(struct file *filep, unsigned int cmd,
+			  unsigned long arg)
 {
-	uioc_t		*kioc;
-	char		signature[EXT_IOCTL_SIGN_SZ]	= {0};
-	int		rval;
-	mraid_mmadp_t	*adp;
-	uint8_t		old_ioctl;
-	int		drvrcmd_rval;
+	uioc_t *kioc;
+	char signature[EXT_IOCTL_SIGN_SZ] = { 0 };
+	int rval;
+	mraid_mmadp_t *adp;
+	uint8_t old_ioctl;
+	int drvrcmd_rval;
 	void __user *argp = (void __user *)arg;
 
 	/*
@@ -124,7 +121,7 @@ mraid_mm_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 	 */
 	if (copy_from_user(signature, argp, EXT_IOCTL_SIGN_SZ)) {
 		con_log(CL_ANN, (KERN_WARNING
-			"megaraid cmm: copy from usr addr failed\n"));
+				 "megaraid cmm: copy from usr addr failed\n"));
 		return (-EFAULT);
 	}
 
@@ -136,7 +133,7 @@ mraid_mm_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 	/*
 	 * At present, we don't support the new ioctl packet
 	 */
-	if (!old_ioctl )
+	if (!old_ioctl)
 		return (-EINVAL);
 
 	/*
@@ -160,9 +157,10 @@ mraid_mm_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 	 * if any previous kioc had timedout on this controller.
 	 */
 	if (!adp->quiescent) {
-		con_log(CL_ANN, (KERN_WARNING
-			"megaraid cmm: controller cannot accept cmds due to "
-			"earlier errors\n" ));
+		con_log(CL_ANN,
+			(KERN_WARNING
+			 "megaraid cmm: controller cannot accept cmds due to "
+			 "earlier errors\n"));
 		return -EFAULT;
 	}
 
@@ -191,7 +189,6 @@ mraid_mm_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 	 * timedout, that means that resources are still with low level driver.
 	 */
 	if ((rval = lld_ioctl(adp, kioc))) {
-
 		if (!kioc->timedout)
 			mraid_mm_dealloc_kioc(adp, kioc);
 
@@ -211,9 +208,8 @@ mraid_mm_ioctl(struct file *filep, unsigned int cmd, unsigned long arg)
 	return rval;
 }
 
-static long
-mraid_mm_unlocked_ioctl(struct file *filep, unsigned int cmd,
-		        unsigned long arg)
+static long mraid_mm_unlocked_ioctl(struct file *filep, unsigned int cmd,
+				    unsigned long arg)
 {
 	int err;
 
@@ -231,14 +227,13 @@ mraid_mm_unlocked_ioctl(struct file *filep, unsigned int cmd,
  *
  * The function return value is a pointer to the located @adapter.
  */
-static mraid_mmadp_t *
-mraid_mm_get_adapter(mimd_t __user *umimd, int *rval)
+static mraid_mmadp_t *mraid_mm_get_adapter(mimd_t __user *umimd, int *rval)
 {
-	mraid_mmadp_t	*adapter;
-	mimd_t		mimd;
-	uint32_t	adapno;
-	int		iterator;
-	bool		is_found;
+	mraid_mmadp_t *adapter;
+	mimd_t mimd;
+	uint32_t adapno;
+	int iterator;
+	bool is_found;
 
 	if (copy_from_user(&mimd, umimd, sizeof(mimd_t))) {
 		*rval = -EFAULT;
@@ -277,13 +272,12 @@ mraid_mm_get_adapter(mimd_t __user *umimd, int *rval)
  * @old_ioctl	: mimd if 1; uioc otherwise
  * @rval	: pointer for command's returned value (not function status)
  */
-static int
-handle_drvrcmd(void __user *arg, uint8_t old_ioctl, int *rval)
+static int handle_drvrcmd(void __user *arg, uint8_t old_ioctl, int *rval)
 {
-	mimd_t		__user *umimd;
-	mimd_t		kmimd;
-	uint8_t		opcode;
-	uint8_t		subopcode;
+	mimd_t __user *umimd;
+	mimd_t kmimd;
+	uint8_t opcode;
+	uint8_t subopcode;
 
 	if (old_ioctl)
 		goto old_packet;
@@ -300,8 +294,8 @@ old_packet:
 	if (copy_from_user(&kmimd, umimd, sizeof(mimd_t)))
 		return (-EFAULT);
 
-	opcode		= kmimd.ui.fcs.opcode;
-	subopcode	= kmimd.ui.fcs.subopcode;
+	opcode = kmimd.ui.fcs.opcode;
+	subopcode = kmimd.ui.fcs.subopcode;
 
 	/*
 	 * If the opcode is 0x82 and the subopcode is either GET_DRVRVER or
@@ -312,7 +306,6 @@ old_packet:
 		return 1;
 
 	switch (subopcode) {
-
 	case MEGAIOC_QDRVRVER:
 
 		if (copy_to_user(kmimd.data, &drvr_ver, sizeof(uint32_t)))
@@ -325,7 +318,7 @@ old_packet:
 		*rval = adapters_count_g;
 
 		if (copy_to_user(kmimd.data, &adapters_count_g,
-				sizeof(uint32_t)))
+				 sizeof(uint32_t)))
 			return (-EFAULT);
 
 		return 0;
@@ -338,7 +331,6 @@ old_packet:
 	return 0;
 }
 
-
 /**
  * mimd_to_kioc	- Converter from old to new ioctl format
  * @umimd	: user space old MIMD IOCTL
@@ -350,16 +342,15 @@ old_packet:
  * freely.
  */
 
-static int
-mimd_to_kioc(mimd_t __user *umimd, mraid_mmadp_t *adp, uioc_t *kioc)
+static int mimd_to_kioc(mimd_t __user *umimd, mraid_mmadp_t *adp, uioc_t *kioc)
 {
-	mbox64_t		*mbox64;
-	mbox_t			*mbox;
-	mraid_passthru_t	*pthru32;
-	uint32_t		adapno;
-	uint8_t			opcode;
-	uint8_t			subopcode;
-	mimd_t			mimd;
+	mbox64_t *mbox64;
+	mbox_t *mbox;
+	mraid_passthru_t *pthru32;
+	uint32_t adapno;
+	uint8_t opcode;
+	uint8_t subopcode;
+	mimd_t mimd;
 
 	if (copy_from_user(&mimd, umimd, sizeof(mimd_t)))
 		return (-EFAULT);
@@ -368,36 +359,33 @@ mimd_to_kioc(mimd_t __user *umimd, mraid_mmadp_t *adp, uioc_t *kioc)
 	 * Applications are not allowed to send extd pthru
 	 */
 	if ((mimd.mbox[0] == MBOXCMD_PASSTHRU64) ||
-			(mimd.mbox[0] == MBOXCMD_EXTPTHRU))
+	    (mimd.mbox[0] == MBOXCMD_EXTPTHRU))
 		return (-EINVAL);
 
-	opcode		= mimd.ui.fcs.opcode;
-	subopcode	= mimd.ui.fcs.subopcode;
-	adapno		= GETADAP(mimd.ui.fcs.adapno);
+	opcode = mimd.ui.fcs.opcode;
+	subopcode = mimd.ui.fcs.subopcode;
+	adapno = GETADAP(mimd.ui.fcs.adapno);
 
 	if (adapno >= adapters_count_g)
 		return (-ENODEV);
 
-	kioc->adapno	= adapno;
-	kioc->mb_type	= MBOX_LEGACY;
-	kioc->app_type	= APPTYPE_MIMD;
+	kioc->adapno = adapno;
+	kioc->mb_type = MBOX_LEGACY;
+	kioc->app_type = APPTYPE_MIMD;
 
 	switch (opcode) {
-
 	case 0x82:
 
 		if (subopcode == MEGAIOC_QADAPINFO) {
-
-			kioc->opcode	= GET_ADAP_INFO;
-			kioc->data_dir	= UIOC_RD;
-			kioc->xferlen	= sizeof(mraid_hba_info_t);
+			kioc->opcode = GET_ADAP_INFO;
+			kioc->data_dir = UIOC_RD;
+			kioc->xferlen = sizeof(mraid_hba_info_t);
 
 			if (mraid_mm_attach_buf(adp, kioc, kioc->xferlen))
 				return (-ENOMEM);
-		}
-		else {
-			con_log(CL_ANN, (KERN_WARNING
-					"megaraid cmm: Invalid subop\n"));
+		} else {
+			con_log(CL_ANN,
+				(KERN_WARNING "megaraid cmm: Invalid subop\n"));
 			return (-EINVAL);
 		}
 
@@ -405,32 +393,36 @@ mimd_to_kioc(mimd_t __user *umimd, mraid_mmadp_t *adp, uioc_t *kioc)
 
 	case 0x81:
 
-		kioc->opcode		= MBOX_CMD;
-		kioc->xferlen		= mimd.ui.fcs.length;
-		kioc->user_data_len	= kioc->xferlen;
-		kioc->user_data		= mimd.ui.fcs.buffer;
+		kioc->opcode = MBOX_CMD;
+		kioc->xferlen = mimd.ui.fcs.length;
+		kioc->user_data_len = kioc->xferlen;
+		kioc->user_data = mimd.ui.fcs.buffer;
 
 		if (mraid_mm_attach_buf(adp, kioc, kioc->xferlen))
 			return (-ENOMEM);
 
-		if (mimd.outlen) kioc->data_dir  = UIOC_RD;
-		if (mimd.inlen) kioc->data_dir |= UIOC_WR;
+		if (mimd.outlen)
+			kioc->data_dir = UIOC_RD;
+		if (mimd.inlen)
+			kioc->data_dir |= UIOC_WR;
 
 		break;
 
 	case 0x80:
 
-		kioc->opcode		= MBOX_CMD;
-		kioc->xferlen		= (mimd.outlen > mimd.inlen) ?
-						mimd.outlen : mimd.inlen;
-		kioc->user_data_len	= kioc->xferlen;
-		kioc->user_data		= mimd.data;
+		kioc->opcode = MBOX_CMD;
+		kioc->xferlen = (mimd.outlen > mimd.inlen) ? mimd.outlen :
+							     mimd.inlen;
+		kioc->user_data_len = kioc->xferlen;
+		kioc->user_data = mimd.data;
 
 		if (mraid_mm_attach_buf(adp, kioc, kioc->xferlen))
 			return (-ENOMEM);
 
-		if (mimd.outlen) kioc->data_dir  = UIOC_RD;
-		if (mimd.inlen) kioc->data_dir |= UIOC_WR;
+		if (mimd.outlen)
+			kioc->data_dir = UIOC_RD;
+		if (mimd.inlen)
+			kioc->data_dir |= UIOC_WR;
 
 		break;
 
@@ -447,17 +439,17 @@ mimd_to_kioc(mimd_t __user *umimd, mraid_mmadp_t *adp, uioc_t *kioc)
 	/*
 	 * This is a mailbox cmd; copy the mailbox from mimd
 	 */
-	mbox64	= (mbox64_t *)((unsigned long)kioc->cmdbuf);
-	mbox	= &mbox64->mbox32;
+	mbox64 = (mbox64_t *)((unsigned long)kioc->cmdbuf);
+	mbox = &mbox64->mbox32;
 	memcpy(mbox, mimd.mbox, 14);
 
-	if (mbox->cmd != MBOXCMD_PASSTHRU) {	// regular DCMD
+	if (mbox->cmd != MBOXCMD_PASSTHRU) { // regular DCMD
 
-		mbox->xferaddr	= (uint32_t)kioc->buf_paddr;
+		mbox->xferaddr = (uint32_t)kioc->buf_paddr;
 
 		if (kioc->data_dir & UIOC_WR) {
 			if (copy_from_user(kioc->buf_vaddr, kioc->user_data,
-							kioc->xferlen)) {
+					   kioc->xferlen)) {
 				return (-EFAULT);
 			}
 		}
@@ -471,21 +463,21 @@ mimd_to_kioc(mimd_t __user *umimd, mraid_mmadp_t *adp, uioc_t *kioc)
 	 * a mailbox. The passthru will begin at next 1K boundary. And the
 	 * data will start 1K after that.
 	 */
-	pthru32			= kioc->pthru32;
-	kioc->user_pthru	= &umimd->pthru;
-	mbox->xferaddr		= (uint32_t)kioc->pthru32_h;
+	pthru32 = kioc->pthru32;
+	kioc->user_pthru = &umimd->pthru;
+	mbox->xferaddr = (uint32_t)kioc->pthru32_h;
 
 	if (copy_from_user(pthru32, kioc->user_pthru,
-			sizeof(mraid_passthru_t))) {
+			   sizeof(mraid_passthru_t))) {
 		return (-EFAULT);
 	}
 
-	pthru32->dataxferaddr	= kioc->buf_paddr;
+	pthru32->dataxferaddr = kioc->buf_paddr;
 	if (kioc->data_dir & UIOC_WR) {
 		if (pthru32->dataxferlen > kioc->xferlen)
 			return -EINVAL;
 		if (copy_from_user(kioc->buf_vaddr, kioc->user_data,
-						pthru32->dataxferlen)) {
+				   pthru32->dataxferlen)) {
 			return (-EFAULT);
 		}
 	}
@@ -504,18 +496,17 @@ mimd_to_kioc(mimd_t __user *umimd, mraid_mmadp_t *adp, uioc_t *kioc)
  * is available, we will try to allocate the smallest buffer that is >=
  * @xferlen and attach it the pool.
  */
-static int
-mraid_mm_attach_buf(mraid_mmadp_t *adp, uioc_t *kioc, int xferlen)
+static int mraid_mm_attach_buf(mraid_mmadp_t *adp, uioc_t *kioc, int xferlen)
 {
-	mm_dmapool_t	*pool;
-	int		right_pool = -1;
-	unsigned long	flags;
-	int		i;
+	mm_dmapool_t *pool;
+	int right_pool = -1;
+	unsigned long flags;
+	int i;
 
-	kioc->pool_index	= -1;
-	kioc->buf_vaddr		= NULL;
-	kioc->buf_paddr		= 0;
-	kioc->free_buf		= 0;
+	kioc->pool_index = -1;
+	kioc->buf_vaddr = NULL;
+	kioc->buf_paddr = 0;
+	kioc->free_buf = 0;
 
 	/*
 	 * We need xferlen amount of memory. See if we can get it from our
@@ -523,7 +514,6 @@ mraid_mm_attach_buf(mraid_mmadp_t *adp, uioc_t *kioc, int xferlen)
 	 */
 
 	for (i = 0; i < MAX_DMA_POOLS; i++) {
-
 		pool = &adp->dma_pool_list[i];
 
 		if (xferlen > pool->buf_size)
@@ -535,16 +525,14 @@ mraid_mm_attach_buf(mraid_mmadp_t *adp, uioc_t *kioc, int xferlen)
 		spin_lock_irqsave(&pool->lock, flags);
 
 		if (!pool->in_use) {
-
-			pool->in_use		= 1;
-			kioc->pool_index	= i;
-			kioc->buf_vaddr		= pool->vaddr;
-			kioc->buf_paddr		= pool->paddr;
+			pool->in_use = 1;
+			kioc->pool_index = i;
+			kioc->buf_vaddr = pool->vaddr;
+			kioc->buf_paddr = pool->paddr;
 
 			spin_unlock_irqrestore(&pool->lock, flags);
 			return 0;
-		}
-		else {
+		} else {
 			spin_unlock_irqrestore(&pool->lock, flags);
 			continue;
 		}
@@ -564,10 +552,10 @@ mraid_mm_attach_buf(mraid_mmadp_t *adp, uioc_t *kioc, int xferlen)
 
 	spin_lock_irqsave(&pool->lock, flags);
 
-	kioc->pool_index	= right_pool;
-	kioc->free_buf		= 1;
-	kioc->buf_vaddr		= dma_pool_alloc(pool->handle, GFP_ATOMIC,
-							&kioc->buf_paddr);
+	kioc->pool_index = right_pool;
+	kioc->free_buf = 1;
+	kioc->buf_vaddr =
+		dma_pool_alloc(pool->handle, GFP_ATOMIC, &kioc->buf_paddr);
 	spin_unlock_irqrestore(&pool->lock, flags);
 
 	if (!kioc->buf_vaddr)
@@ -584,12 +572,11 @@ mraid_mm_attach_buf(mraid_mmadp_t *adp, uioc_t *kioc, int xferlen)
  * free kioc pool. If the kioc pool is empty, this function blocks till
  * a kioc becomes free.
  */
-static uioc_t *
-mraid_mm_alloc_kioc(mraid_mmadp_t *adp)
+static uioc_t *mraid_mm_alloc_kioc(mraid_mmadp_t *adp)
 {
-	uioc_t			*kioc;
-	struct list_head*	head;
-	unsigned long		flags;
+	uioc_t *kioc;
+	struct list_head *head;
+	unsigned long flags;
 
 	down(&adp->kioc_semaphore);
 
@@ -611,16 +598,16 @@ mraid_mm_alloc_kioc(mraid_mmadp_t *adp)
 	spin_unlock_irqrestore(&adp->kioc_pool_lock, flags);
 
 	memset((caddr_t)(unsigned long)kioc->cmdbuf, 0, sizeof(mbox64_t));
-	memset((caddr_t) kioc->pthru32, 0, sizeof(mraid_passthru_t));
+	memset((caddr_t)kioc->pthru32, 0, sizeof(mraid_passthru_t));
 
-	kioc->buf_vaddr		= NULL;
-	kioc->buf_paddr		= 0;
-	kioc->pool_index	=-1;
-	kioc->free_buf		= 0;
-	kioc->user_data		= NULL;
-	kioc->user_data_len	= 0;
-	kioc->user_pthru	= NULL;
-	kioc->timedout		= 0;
+	kioc->buf_vaddr = NULL;
+	kioc->buf_paddr = 0;
+	kioc->pool_index = -1;
+	kioc->free_buf = 0;
+	kioc->user_data = NULL;
+	kioc->user_data_len = 0;
+	kioc->user_pthru = NULL;
+	kioc->timedout = 0;
 
 	return kioc;
 }
@@ -630,11 +617,10 @@ mraid_mm_alloc_kioc(mraid_mmadp_t *adp)
  * @adp		: Adapter softstate
  * @kioc	: uioc_t node to be returned to free pool
  */
-static void
-mraid_mm_dealloc_kioc(mraid_mmadp_t *adp, uioc_t *kioc)
+static void mraid_mm_dealloc_kioc(mraid_mmadp_t *adp, uioc_t *kioc)
 {
-	mm_dmapool_t	*pool;
-	unsigned long	flags;
+	mm_dmapool_t *pool;
+	unsigned long flags;
 
 	if (kioc->pool_index != -1) {
 		pool = &adp->dma_pool_list[kioc->pool_index];
@@ -650,8 +636,8 @@ mraid_mm_dealloc_kioc(mraid_mmadp_t *adp, uioc_t *kioc)
 		 * not in use
 		 */
 		if (kioc->free_buf == 1)
-			dma_pool_free(pool->handle, kioc->buf_vaddr, 
-							kioc->buf_paddr);
+			dma_pool_free(pool->handle, kioc->buf_vaddr,
+				      kioc->buf_paddr);
 		else
 			pool->in_use = 0;
 
@@ -674,16 +660,16 @@ mraid_mm_dealloc_kioc(mraid_mmadp_t *adp, uioc_t *kioc)
  * @adp		: The adapter handle
  * @kioc	: The ioctl packet with kernel addresses
  */
-static int
-lld_ioctl(mraid_mmadp_t *adp, uioc_t *kioc)
+static int lld_ioctl(mraid_mmadp_t *adp, uioc_t *kioc)
 {
-	int			rval;
-	struct uioc_timeout	timeout = { };
+	int rval;
+	struct uioc_timeout timeout = {};
 
-	kioc->status	= -ENODATA;
-	rval		= adp->issue_uioc(adp->drvr_data, kioc, IOCTL_ISSUE);
+	kioc->status = -ENODATA;
+	rval = adp->issue_uioc(adp->drvr_data, kioc, IOCTL_ISSUE);
 
-	if (rval) return rval;
+	if (rval)
+		return rval;
 
 	/*
 	 * Start the timer
@@ -692,7 +678,7 @@ lld_ioctl(mraid_mmadp_t *adp, uioc_t *kioc)
 		timeout.uioc = kioc;
 		timer_setup_on_stack(&timeout.timer, lld_timedout, 0);
 
-		timeout.timer.expires	= jiffies + adp->timeout * HZ;
+		timeout.timer.expires = jiffies + adp->timeout * HZ;
 
 		add_timer(&timeout.timer);
 	}
@@ -718,18 +704,16 @@ lld_ioctl(mraid_mmadp_t *adp, uioc_t *kioc)
 	return kioc->status;
 }
 
-
 /**
  * ioctl_done - callback from the low level driver
  * @kioc	: completed ioctl packet
  */
-static void
-ioctl_done(uioc_t *kioc)
+static void ioctl_done(uioc_t *kioc)
 {
-	uint32_t	adapno;
-	int		iterator;
-	mraid_mmadp_t*	adapter;
-	bool		is_found;
+	uint32_t adapno;
+	int iterator;
+	mraid_mmadp_t *adapter;
+	bool is_found;
 
 	/*
 	 * When the kioc returns from driver, make sure it still doesn't
@@ -738,7 +722,7 @@ ioctl_done(uioc_t *kioc)
 	 */
 	if (kioc->status == -ENODATA) {
 		con_log(CL_ANN, (KERN_WARNING
-			"megaraid cmm: lld didn't change status!\n"));
+				 "megaraid cmm: lld didn't change status!\n"));
 
 		kioc->status = -EINVAL;
 	}
@@ -749,13 +733,14 @@ ioctl_done(uioc_t *kioc)
 	 * have to free the kioc
 	 */
 	if (kioc->timedout) {
-		iterator	= 0;
-		adapter		= NULL;
-		adapno		= kioc->adapno;
-		is_found	= false;
+		iterator = 0;
+		adapter = NULL;
+		adapno = kioc->adapno;
+		is_found = false;
 
-		con_log(CL_ANN, ( KERN_WARNING "megaraid cmm: completed "
-					"ioctl that was timedout before\n"));
+		con_log(CL_ANN,
+			(KERN_WARNING "megaraid cmm: completed "
+				      "ioctl that was timedout before\n"));
 
 		list_for_each_entry(adapter, &adapters_list_g, list) {
 			if (iterator++ == adapno) {
@@ -767,62 +752,55 @@ ioctl_done(uioc_t *kioc)
 		kioc->timedout = 0;
 
 		if (is_found)
-			mraid_mm_dealloc_kioc( adapter, kioc );
+			mraid_mm_dealloc_kioc(adapter, kioc);
 
-	}
-	else {
+	} else {
 		wake_up(&wait_q);
 	}
 }
-
 
 /**
  * lld_timedout	- callback from the expired timer
  * @t		: timer that timed out
  */
-static void
-lld_timedout(struct timer_list *t)
+static void lld_timedout(struct timer_list *t)
 {
 	struct uioc_timeout *timeout = timer_container_of(timeout, t, timer);
-	uioc_t *kioc	= timeout->uioc;
+	uioc_t *kioc = timeout->uioc;
 
-	kioc->status 	= -ETIME;
-	kioc->timedout	= 1;
+	kioc->status = -ETIME;
+	kioc->timedout = 1;
 
 	con_log(CL_ANN, (KERN_WARNING "megaraid cmm: ioctl timed out\n"));
 
 	wake_up(&wait_q);
 }
 
-
 /**
  * kioc_to_mimd	- Converter from new back to old format
  * @kioc	: Kernel space IOCTL packet (successfully issued)
  * @mimd	: User space MIMD packet
  */
-static int
-kioc_to_mimd(uioc_t *kioc, mimd_t __user *mimd)
+static int kioc_to_mimd(uioc_t *kioc, mimd_t __user *mimd)
 {
-	mimd_t			kmimd;
-	uint8_t			opcode;
-	uint8_t			subopcode;
+	mimd_t kmimd;
+	uint8_t opcode;
+	uint8_t subopcode;
 
-	mbox64_t		*mbox64;
-	mraid_passthru_t	__user *upthru32;
-	mraid_passthru_t	*kpthru32;
-	mcontroller_t		cinfo;
-	mraid_hba_info_t	*hinfo;
-
+	mbox64_t *mbox64;
+	mraid_passthru_t __user *upthru32;
+	mraid_passthru_t *kpthru32;
+	mcontroller_t cinfo;
+	mraid_hba_info_t *hinfo;
 
 	if (copy_from_user(&kmimd, mimd, sizeof(mimd_t)))
 		return (-EFAULT);
 
-	opcode		= kmimd.ui.fcs.opcode;
-	subopcode	= kmimd.ui.fcs.subopcode;
+	opcode = kmimd.ui.fcs.opcode;
+	subopcode = kmimd.ui.fcs.subopcode;
 
 	if (opcode == 0x82) {
 		switch (subopcode) {
-
 		case MEGAIOC_QADAPINFO:
 
 			hinfo = (mraid_hba_info_t *)(unsigned long)
@@ -845,92 +823,83 @@ kioc_to_mimd(uioc_t *kioc, mimd_t __user *mimd)
 	mbox64 = (mbox64_t *)(unsigned long)kioc->cmdbuf;
 
 	if (kioc->user_pthru) {
-
 		upthru32 = kioc->user_pthru;
 		kpthru32 = kioc->pthru32;
 
-		if (copy_to_user(&upthru32->scsistatus,
-					&kpthru32->scsistatus,
-					sizeof(uint8_t))) {
+		if (copy_to_user(&upthru32->scsistatus, &kpthru32->scsistatus,
+				 sizeof(uint8_t))) {
 			return (-EFAULT);
 		}
 	}
 
 	if (kioc->user_data) {
 		if (copy_to_user(kioc->user_data, kioc->buf_vaddr,
-					kioc->user_data_len)) {
+				 kioc->user_data_len)) {
 			return (-EFAULT);
 		}
 	}
 
-	if (copy_to_user(&mimd->mbox[17],
-			&mbox64->mbox32.status, sizeof(uint8_t))) {
+	if (copy_to_user(&mimd->mbox[17], &mbox64->mbox32.status,
+			 sizeof(uint8_t))) {
 		return (-EFAULT);
 	}
 
 	return 0;
 }
 
-
 /**
  * hinfo_to_cinfo - Convert new format hba info into old format
  * @hinfo	: New format, more comprehensive adapter info
  * @cinfo	: Old format adapter info to support mimd_t apps
  */
-static void
-hinfo_to_cinfo(mraid_hba_info_t *hinfo, mcontroller_t *cinfo)
+static void hinfo_to_cinfo(mraid_hba_info_t *hinfo, mcontroller_t *cinfo)
 {
 	if (!hinfo || !cinfo)
 		return;
 
-	cinfo->base		= hinfo->baseport;
-	cinfo->irq		= hinfo->irq;
-	cinfo->numldrv		= hinfo->num_ldrv;
-	cinfo->pcibus		= hinfo->pci_bus;
-	cinfo->pcidev		= hinfo->pci_slot;
-	cinfo->pcifun		= PCI_FUNC(hinfo->pci_dev_fn);
-	cinfo->pciid		= hinfo->pci_device_id;
-	cinfo->pcivendor	= hinfo->pci_vendor_id;
-	cinfo->pcislot		= hinfo->pci_slot;
-	cinfo->uid		= hinfo->unique_id;
+	cinfo->base = hinfo->baseport;
+	cinfo->irq = hinfo->irq;
+	cinfo->numldrv = hinfo->num_ldrv;
+	cinfo->pcibus = hinfo->pci_bus;
+	cinfo->pcidev = hinfo->pci_slot;
+	cinfo->pcifun = PCI_FUNC(hinfo->pci_dev_fn);
+	cinfo->pciid = hinfo->pci_device_id;
+	cinfo->pcivendor = hinfo->pci_vendor_id;
+	cinfo->pcislot = hinfo->pci_slot;
+	cinfo->uid = hinfo->unique_id;
 }
-
 
 /**
  * mraid_mm_register_adp - Registration routine for low level drivers
  * @adapter	: Adapter object
  */
-int
-mraid_mm_register_adp(mraid_mmadp_t *adapter)
+int mraid_mm_register_adp(mraid_mmadp_t *adapter)
 {
-	mbox64_t	*mbox_list;
-	uioc_t		*kioc;
-	uint32_t	rval;
-	int		i;
-
+	mbox64_t *mbox_list;
+	uioc_t *kioc;
+	uint32_t rval;
+	int i;
 
 	if (adapter->drvr_type != DRVRTYPE_MBOX)
 		return (-EINVAL);
 
-	adapter->quiescent	= 1;
+	adapter->quiescent = 1;
 
 	/*
 	 * Allocate single blocks of memory for all required kiocs,
 	 * mailboxes and passthru structures.
 	 */
-	adapter->kioc_list	= kmalloc_objs(uioc_t, adapter->max_kioc);
-	adapter->mbox_list	= kmalloc_objs(mbox64_t, adapter->max_kioc);
-	adapter->pthru_dma_pool = dma_pool_create("megaraid mm pthru pool",
-						&adapter->pdev->dev,
-						sizeof(mraid_passthru_t),
-						16, 0);
+	adapter->kioc_list = kmalloc_objs(uioc_t, adapter->max_kioc);
+	adapter->mbox_list = kmalloc_objs(mbox64_t, adapter->max_kioc);
+	adapter->pthru_dma_pool =
+		dma_pool_create("megaraid mm pthru pool", &adapter->pdev->dev,
+				sizeof(mraid_passthru_t), 16, 0);
 
 	if (!adapter->kioc_list || !adapter->mbox_list ||
-			!adapter->pthru_dma_pool) {
-
-		con_log(CL_ANN, (KERN_WARNING
-			"megaraid cmm: out of memory, %s %d\n", __func__,
-			__LINE__));
+	    !adapter->pthru_dma_pool) {
+		con_log(CL_ANN,
+			(KERN_WARNING "megaraid cmm: out of memory, %s %d\n",
+			 __func__, __LINE__));
 
 		rval = (-ENOMEM);
 
@@ -944,20 +913,18 @@ mraid_mm_register_adp(mraid_mmadp_t *adapter)
 	spin_lock_init(&adapter->kioc_pool_lock);
 	sema_init(&adapter->kioc_semaphore, adapter->max_kioc);
 
-	mbox_list	= (mbox64_t *)adapter->mbox_list;
+	mbox_list = (mbox64_t *)adapter->mbox_list;
 
 	for (i = 0; i < adapter->max_kioc; i++) {
-
-		kioc		= adapter->kioc_list + i;
-		kioc->cmdbuf	= (uint64_t)(unsigned long)(mbox_list + i);
-		kioc->pthru32	= dma_pool_alloc(adapter->pthru_dma_pool,
-						GFP_KERNEL, &kioc->pthru32_h);
+		kioc = adapter->kioc_list + i;
+		kioc->cmdbuf = (uint64_t)(unsigned long)(mbox_list + i);
+		kioc->pthru32 = dma_pool_alloc(adapter->pthru_dma_pool,
+					       GFP_KERNEL, &kioc->pthru32_h);
 
 		if (!kioc->pthru32) {
-
 			con_log(CL_ANN, (KERN_WARNING
-				"megaraid cmm: out of memory, %s %d\n",
-					__func__, __LINE__));
+					 "megaraid cmm: out of memory, %s %d\n",
+					 __func__, __LINE__));
 
 			rval = (-ENOMEM);
 
@@ -987,7 +954,7 @@ pthru_dma_pool_error:
 		kioc = adapter->kioc_list + i;
 		if (kioc->pthru32) {
 			dma_pool_free(adapter->pthru_dma_pool, kioc->pthru32,
-				kioc->pthru32_h);
+				      kioc->pthru32_h);
 		}
 	}
 
@@ -1001,7 +968,6 @@ memalloc_error:
 	return rval;
 }
 
-
 /**
  * mraid_mm_adapter_app_handle - return the application handle for this adapter
  * @unique_id	: adapter unique identifier
@@ -1013,17 +979,14 @@ memalloc_error:
  * Return adapter handle if found in the list.
  * Return 0 if adapter could not be located, should never happen though.
  */
-uint32_t
-mraid_mm_adapter_app_handle(uint32_t unique_id)
+uint32_t mraid_mm_adapter_app_handle(uint32_t unique_id)
 {
-	mraid_mmadp_t	*adapter;
-	mraid_mmadp_t	*tmp;
-	int		index = 0;
+	mraid_mmadp_t *adapter;
+	mraid_mmadp_t *tmp;
+	int index = 0;
 
 	list_for_each_entry_safe(adapter, tmp, &adapters_list_g, list) {
-
 		if (adapter->unique_id == unique_id) {
-
 			return MKADAP(index);
 		}
 
@@ -1032,7 +995,6 @@ mraid_mm_adapter_app_handle(uint32_t unique_id)
 
 	return 0;
 }
-
 
 /**
  * mraid_mm_setup_dma_pools - Set up dma buffer pools per adapter
@@ -1044,35 +1006,32 @@ mraid_mm_adapter_app_handle(uint32_t unique_id)
  * dont' want to waste too much memory by allocating more buffers per each
  * pool.
  */
-static int
-mraid_mm_setup_dma_pools(mraid_mmadp_t *adp)
+static int mraid_mm_setup_dma_pools(mraid_mmadp_t *adp)
 {
-	mm_dmapool_t	*pool;
-	int		bufsize;
-	int		i;
+	mm_dmapool_t *pool;
+	int bufsize;
+	int i;
 
 	/*
 	 * Create MAX_DMA_POOLS number of pools
 	 */
 	bufsize = MRAID_MM_INIT_BUFF_SIZE;
 
-	for (i = 0; i < MAX_DMA_POOLS; i++){
-
+	for (i = 0; i < MAX_DMA_POOLS; i++) {
 		pool = &adp->dma_pool_list[i];
 
 		pool->buf_size = bufsize;
 		spin_lock_init(&pool->lock);
 
 		pool->handle = dma_pool_create("megaraid mm data buffer",
-						&adp->pdev->dev, bufsize,
-						16, 0);
+					       &adp->pdev->dev, bufsize, 16, 0);
 
 		if (!pool->handle) {
 			goto dma_pool_setup_error;
 		}
 
-		pool->vaddr = dma_pool_alloc(pool->handle, GFP_KERNEL,
-							&pool->paddr);
+		pool->vaddr =
+			dma_pool_alloc(pool->handle, GFP_KERNEL, &pool->paddr);
 
 		if (!pool->vaddr)
 			goto dma_pool_setup_error;
@@ -1088,24 +1047,19 @@ dma_pool_setup_error:
 	return (-ENOMEM);
 }
 
-
 /**
  * mraid_mm_unregister_adp - Unregister routine for low level drivers
  * @unique_id	: UID of the adpater
  *
  * Assumes no outstanding ioctls to llds.
  */
-int
-mraid_mm_unregister_adp(uint32_t unique_id)
+int mraid_mm_unregister_adp(uint32_t unique_id)
 {
-	mraid_mmadp_t	*adapter;
-	mraid_mmadp_t	*tmp;
+	mraid_mmadp_t *adapter;
+	mraid_mmadp_t *tmp;
 
 	list_for_each_entry_safe(adapter, tmp, &adapters_list_g, list) {
-
-
 		if (adapter->unique_id == unique_id) {
-
 			adapters_count_g--;
 
 			list_del_init(&adapter->list);
@@ -1114,9 +1068,9 @@ mraid_mm_unregister_adp(uint32_t unique_id)
 
 			kfree(adapter);
 
-			con_log(CL_ANN, (
-				"megaraid cmm: Unregistered one adapter:%#x\n",
-				unique_id));
+			con_log(CL_ANN,
+				("megaraid cmm: Unregistered one adapter:%#x\n",
+				 unique_id));
 
 			return 0;
 		}
@@ -1129,20 +1083,18 @@ mraid_mm_unregister_adp(uint32_t unique_id)
  * mraid_mm_free_adp_resources - Free adapter softstate
  * @adp	: Adapter softstate
  */
-static void
-mraid_mm_free_adp_resources(mraid_mmadp_t *adp)
+static void mraid_mm_free_adp_resources(mraid_mmadp_t *adp)
 {
-	uioc_t	*kioc;
-	int	i;
+	uioc_t *kioc;
+	int i;
 
 	mraid_mm_teardown_dma_pools(adp);
 
 	for (i = 0; i < adp->max_kioc; i++) {
-
 		kioc = adp->kioc_list + i;
 
 		dma_pool_free(adp->pthru_dma_pool, kioc->pthru32,
-				kioc->pthru32_h);
+			      kioc->pthru32_h);
 	}
 
 	kfree(adp->kioc_list);
@@ -1150,30 +1102,25 @@ mraid_mm_free_adp_resources(mraid_mmadp_t *adp)
 
 	dma_pool_destroy(adp->pthru_dma_pool);
 
-
 	return;
 }
-
 
 /**
  * mraid_mm_teardown_dma_pools - Free all per adapter dma buffers
  * @adp	: Adapter softstate
  */
-static void
-mraid_mm_teardown_dma_pools(mraid_mmadp_t *adp)
+static void mraid_mm_teardown_dma_pools(mraid_mmadp_t *adp)
 {
-	int		i;
-	mm_dmapool_t	*pool;
+	int i;
+	mm_dmapool_t *pool;
 
 	for (i = 0; i < MAX_DMA_POOLS; i++) {
-
 		pool = &adp->dma_pool_list[i];
 
 		if (pool->handle) {
-
 			if (pool->vaddr)
 				dma_pool_free(pool->handle, pool->vaddr,
-							pool->paddr);
+					      pool->paddr);
 
 			dma_pool_destroy(pool->handle);
 			pool->handle = NULL;
@@ -1186,18 +1133,18 @@ mraid_mm_teardown_dma_pools(mraid_mmadp_t *adp)
 /**
  * mraid_mm_init	- Module entry point
  */
-static int __init
-mraid_mm_init(void)
+static int __init mraid_mm_init(void)
 {
 	int err;
 
 	// Announce the driver version
 	con_log(CL_ANN, (KERN_INFO "megaraid cmm: %s %s\n",
-		LSI_COMMON_MOD_VERSION, LSI_COMMON_MOD_EXT_VERSION));
+			 LSI_COMMON_MOD_VERSION, LSI_COMMON_MOD_EXT_VERSION));
 
 	err = misc_register(&megaraid_mm_dev);
 	if (err < 0) {
-		con_log(CL_ANN, ("megaraid cmm: cannot register misc device\n"));
+		con_log(CL_ANN,
+			("megaraid cmm: cannot register misc device\n"));
 		return err;
 	}
 
@@ -1208,14 +1155,12 @@ mraid_mm_init(void)
 	return 0;
 }
 
-
 /**
  * mraid_mm_exit	- Module exit point
  */
-static void __exit
-mraid_mm_exit(void)
+static void __exit mraid_mm_exit(void)
 {
-	con_log(CL_DLEVEL1 , ("exiting common mod\n"));
+	con_log(CL_DLEVEL1, ("exiting common mod\n"));
 
 	misc_deregister(&megaraid_mm_dev);
 }
